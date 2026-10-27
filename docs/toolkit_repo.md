@@ -122,7 +122,7 @@ This repo does not own:
 
 Ordinary Cargo, Clippy and xtask use exact Rust 1.99.1. The default Nix shell
 and rustup toolchain agree. Compiler-private Dylint and nightly rustfmt retain
-nightly-2026-04-10; they are not interchangeable with the stable compiler.
+nightly-2026-08-21; they are not interchangeable with the stable compiler.
 The flake exports toolkit-rust-stable and toolkit-rust-nightly for explicit
 identity inspection and guarded toolchain realization. Consumers retain their
 own scoped compiler dispatch and validate integration before updating pins.

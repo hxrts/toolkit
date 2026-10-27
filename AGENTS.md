@@ -81,7 +81,7 @@ only the pieces they need.
 ## Compiler selection
 
 Ordinary Cargo, Clippy and xtask use pinned stable Rust 1.99.1. Nightly
-rustfmt and compiler-private Dylint use nightly-2026-04-10 with a dated
+rustfmt and compiler-private Dylint use nightly-2026-08-21 with a dated
 rustup link so other consumer toolchains cannot overwrite its identity.
 Keep direct Cargo/Clippy/rustfmt dispatch and explicit formatter configuration;
 Cargo-home plugins must not select a different compiler. Run `just test-stable`
