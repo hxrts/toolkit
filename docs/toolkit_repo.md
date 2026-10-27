@@ -126,3 +126,10 @@ nightly-2026-08-21; they are not interchangeable with the stable compiler.
 The flake exports toolkit-rust-stable and toolkit-rust-nightly for explicit
 identity inspection and guarded toolchain realization. Consumers retain their
 own scoped compiler dispatch and validate integration before updating pins.
+
+Private compiler or Dylint changes also require `just test-dylint-driver`.
+This maintained CI check installs the pinned driver, dynamically loads each of
+Toolkit's four lint libraries and executes Rust 1.99-minimum consumer fixtures.
+Each library must accept its clean control and reject its actual violation with
+native status101 and the expected diagnostic. Compilation-only success does not
+establish this driver/consumer contract; repository-specific gates remain required.
