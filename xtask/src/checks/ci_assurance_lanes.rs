@@ -94,9 +94,8 @@ fn scan_recipe(
 mod tests {
     use std::fs;
 
-    use crate::config;
-
     use super::{parse_justfile_recipes, run};
+    use crate::config;
 
     #[test]
     fn parses_recipe_bodies() {

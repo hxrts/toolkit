@@ -114,10 +114,10 @@ fn is_route_error_runtime_call(expr: &Expr<'_>) -> bool {
         return false;
     };
     let path = match qpath {
-        QPath::Resolved(_, path) => path,
-        QPath::TypeRelative(_, segment) => {
+        | QPath::Resolved(_, path) => path,
+        | QPath::TypeRelative(_, segment) => {
             return segment.ident.name.as_str() == "Runtime";
-        }
+        },
     };
     let segments = path.segments;
     // Accept `RouteError::Runtime` (2 segments) or just `Runtime` (1 segment

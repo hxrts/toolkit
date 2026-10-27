@@ -15,7 +15,10 @@
 use rustc_hir::Item;
 use rustc_span::source_map::SourceMap;
 
-pub(crate) fn source_has_trait_purity_marker(source_map: &SourceMap, item: &Item<'_>) -> bool {
+pub(crate) fn source_has_trait_purity_marker(
+    source_map: &SourceMap,
+    item: &Item<'_>,
+) -> bool {
     let file = source_map.lookup_source_file(item.span.lo());
     let path = format!("{}", file.name.prefer_remapped_unconditionally());
     let Ok(contents) = std::fs::read_to_string(path) else {

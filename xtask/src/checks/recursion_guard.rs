@@ -174,12 +174,11 @@ fn call_targets_name(expr: &Expr, target_name: &str) -> bool {
 }
 
 fn block_source_text(source: &str, start_line: usize, end_line: usize) -> &str {
-    let mut current_line = 1usize;
     let mut current_offset = 0usize;
     let mut start_offset = 0usize;
     let mut end_offset = source.len();
 
-    for line in source.lines() {
+    for (current_line, line) in (1usize..).zip(source.lines()) {
         let line_start = current_offset;
         let line_end = line_start + line.len();
         if current_line == start_line {
@@ -189,7 +188,6 @@ fn block_source_text(source: &str, start_line: usize, end_line: usize) -> &str {
             end_offset = line_end;
             break;
         }
-        current_line += 1;
         current_offset = line_end + 1;
     }
 

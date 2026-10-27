@@ -77,8 +77,9 @@ fn has_long_block_exception(source_map: &SourceMap, fn_span: Span) -> bool {
     let mut in_block = false;
     for line in lines[..upper].iter().rev() {
         let trimmed = line.trim();
-        let is_regular_line_comment =
-            trimmed.starts_with("//") && !trimmed.starts_with("///") && !trimmed.starts_with("//!");
+        let is_regular_line_comment = trimmed.starts_with("//")
+            && !trimmed.starts_with("///")
+            && !trimmed.starts_with("//!");
 
         if is_regular_line_comment {
             block.push(trimmed);

@@ -84,7 +84,8 @@ Inside the toolkit Nix shell, the reusable command surface is:
   Runs nightly `cargo fmt`, using either `--config <rustfmt.toml>` or the
   toolkit repo's own `rustfmt.toml`.
 - `toolkit-clippy`
-  Runs `cargo clippy` with the toolkit-pinned nightly toolchain.
+  Runs Clippy directly with the toolkit-pinned stable toolchain (Rust 1.99.1).
+  Direct dispatch avoids Cargo-home plugins selecting a different compiler.
 - `toolkit-xtask check lean-style`
   Runs the generic Lean source-style checker over repo-owned `.lean` trees
   using thresholds and exemptions from `toolkit/toolkit.toml`.

@@ -92,9 +92,8 @@ pub fn run(repo_root: &Path, config: &ToolkitConfig) -> Result<FlatFindingSet> {
 mod tests {
     use std::{fs, path::Path, process::Command};
 
-    use crate::config;
-
     use super::run;
+    use crate::config;
 
     #[test]
     fn git_dependency_pins_reports_clean_repo() {

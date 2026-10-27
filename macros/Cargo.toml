@@ -2,7 +2,7 @@
 
 [package]
 name = "rust-toolkit-macros"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 description = "Proc macros for the rust-toolkit policy framework"
 license = "Apache-2.0"
@@ -14,4 +14,4 @@ proc-macro = true
 [dependencies]
 proc-macro2 = "1"
 syn = { version = "2", features = ["full"] }
-rust-toolkit-trait-contracts = { version = "0.4.1", path = "../trait_contracts" }
+rust-toolkit-trait-contracts = { version = "0.4.2", path = "../trait_contracts" }

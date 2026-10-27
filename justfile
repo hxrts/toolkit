@@ -59,3 +59,20 @@ release \
       args+=(--no-require-main)
     fi
     ./scripts/release-publish.sh "${args[@]}"
+
+# Real stable compiler/Clippy dispatch and original-error contract.
+test-stable-dispatch:
+    nix develop --command bash -c 'scripts/test-stable-dispatch.sh "$(command -v cargo)" "$(command -v toolkit-clippy)"'
+
+# Same stable contract used by hosted CI; existing lockfiles remain selected.
+test-stable:
+    nix develop --command bash -c 'scripts/test-stable.sh "$(command -v cargo)" "$(command -v toolkit-clippy)"'
+
+# Pinned nightly formatter dispatch and compiler-private compilation contract.
+test-nightly:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    outputs=$(nix build .#toolkit-fmt .#toolkit-rust-nightly --no-link --json)
+    fmt_path=$(printf '%s' "$outputs" | jq -er '.[0].outputs.out')
+    nightly_path=$(printf '%s' "$outputs" | jq -er '.[1].outputs.out')
+    scripts/test-nightly.sh "$fmt_path/bin/toolkit-fmt" "$nightly_path"

@@ -61,7 +61,7 @@ toolkit/
   Consumer workflow, ownership rules, contributor guidance, and copyable
   bootstrap snippets such as `docs/toolkit-shell.sh`.
 - `flake.nix`
-  Hermetic nightly tooling and the toolkit command surface:
+  Pinned stable Cargo/Clippy and separate nightly rustfmt/Dylint tooling:
   `toolkit-xtask`, `toolkit-fmt`, `toolkit-install-dylint`,
   `toolkit-clippy`, `toolkit-dylint`, and `toolkit-dylint-link`.
 - `flake.lock`
@@ -117,3 +117,12 @@ This repo does not own:
   through sibling-path dependencies or ad hoc checkout resolvers.
 - Keep `README.md` short and move substantial guidance into `docs/`.
 - Add tests or fixtures when introducing non-trivial enforcement behavior.
+
+## Compiler identities
+
+Ordinary Cargo, Clippy and xtask use exact Rust 1.99.1. The default Nix shell
+and rustup toolchain agree. Compiler-private Dylint and nightly rustfmt retain
+nightly-2026-04-10; they are not interchangeable with the stable compiler.
+The flake exports toolkit-rust-stable and toolkit-rust-nightly for explicit
+identity inspection and guarded toolchain realization. Consumers retain their
+own scoped compiler dispatch and validate integration before updating pins.

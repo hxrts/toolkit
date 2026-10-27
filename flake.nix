@@ -3,6 +3,8 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Match Aura's compiler derivation without upgrading unrelated packages.
+    rust-nixpkgs.url = "github:NixOS/nixpkgs/5e2a59a5b1a82f89f2c7e598302a9cacebb72a67";
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -12,6 +14,7 @@
       self,
       nixpkgs,
       rust-overlay,
+      rust-nixpkgs,
       flake-utils,
       ...
     }:
@@ -26,13 +29,18 @@
           [ pkgs.openssl pkgs.zlib ]
           ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.libssh2 pkgs.dbus ]
         );
-        rustToolchainStable = pkgs.rust-bin.stable.latest.default.override {
+        compilerPkgs = import rust-nixpkgs {
+          inherit system overlays;
+        };
+        rustToolchainStable = compilerPkgs.rust-bin.stable."1.99.1".default.override {
           extensions = [
             "rust-src"
             "rust-analyzer"
+            "clippy"
           ];
+          targets = [ "wasm32-unknown-unknown" ];
         };
-        rustToolchainNightly = pkgs.rust-bin.nightly.latest.default.override {
+        rustToolchainNightly = pkgs.rust-bin.nightly."2026-04-10".default.override {
           extensions = [
             "rust-src"
             "rust-analyzer"
@@ -42,14 +50,17 @@
           ];
         };
 
+        # Stable Cargo/Clippy are the ordinary repository compiler. Nightly is
+        # reserved for rustfmt and compiler-private Dylint integration.
         cargoWrapper = pkgs.writeShellScriptBin "cargo" ''
           set -euo pipefail
-          if [ -z "''${RUSTUP_TOOLCHAIN:-}" ]; then
-            host="$(${rustToolchainNightly}/bin/rustc -vV | awk '/^host: / { print $2 }')"
-            export RUSTUP_TOOLCHAIN="toolkit-nightly-''${host}"
+          export RUSTC="${rustToolchainStable}/bin/rustc"
+          export RUSTDOC="${rustToolchainStable}/bin/rustdoc"
+          export CARGO="${rustToolchainStable}/bin/cargo"
+          if [ "''${1:-}" = clippy ]; then
+            exec ${rustToolchainStable}/bin/cargo-clippy "$@"
           fi
-          export PATH="$HOME/.cargo/bin:$PATH"
-          exec ${rustToolchainNightly}/bin/cargo "$@"
+          exec ${rustToolchainStable}/bin/cargo "$@"
         '';
 
         toolkitXtask = pkgs.writeShellScriptBin "toolkit-xtask" ''
@@ -62,6 +73,8 @@
           target_key="$(basename "$toolkit_root" | tr -cs 'A-Za-z0-9._-' '_')"
           target_dir="''${XDG_CACHE_HOME:-$HOME/.cache}/toolkit/xtask-target/$target_key"
           mkdir -p "$target_dir"
+          export RUSTC="${rustToolchainStable}/bin/rustc"
+          export RUSTDOC="${rustToolchainStable}/bin/rustdoc"
           exec ${rustToolchainStable}/bin/cargo run --target-dir "$target_dir" --manifest-path "$toolkit_root/xtask/Cargo.toml" -- "$@"
         '';
 
@@ -72,7 +85,7 @@
           dylint_rev="4bd91ce7729b74c7ee5664bbb588f7baf30b4a09"
           git_bin="${pkgs.git}/bin/git"
           host="$(${rustToolchainNightly}/bin/rustc -vV | awk '/^host: / { print $2 }')"
-          toolchain_name="toolkit-nightly-''${host}"
+          toolchain_name="toolkit-nightly-2026-04-10-''${host}"
           toolchain_root="${rustToolchainNightly}"
 
           mkdir -p "$(dirname "$dylint_repo")"
@@ -106,10 +119,16 @@
           set -euo pipefail
           if [ -z "''${RUSTUP_TOOLCHAIN:-}" ]; then
             host="$(${rustToolchainNightly}/bin/rustc -vV | awk '/^host: / { print $2 }')"
-            export RUSTUP_TOOLCHAIN="toolkit-nightly-''${host}"
+            export RUSTUP_TOOLCHAIN="toolkit-nightly-2026-04-10-''${host}"
           fi
           export PATH="$HOME/.cargo/bin:$PATH"
           exec dylint-link "$@"
+        '';
+
+        toolkitRustfmt = pkgs.writeShellScript "toolkit-rustfmt" ''
+          set -euo pipefail
+          : "''${RUSTFMT_CONFIG_PATH:?toolkit formatter config required}"
+          exec ${rustToolchainNightly}/bin/rustfmt --config-path "$RUSTFMT_CONFIG_PATH" "$@"
         '';
 
         toolkitFmt = pkgs.writeShellScriptBin "toolkit-fmt" ''
@@ -135,13 +154,17 @@
           fi
 
           export RUSTFMT_CONFIG_PATH="$config_path"
-          exec ${rustToolchainNightly}/bin/cargo fmt "$@"
+          export RUSTFMT="${toolkitRustfmt}"
+          export CARGO="${rustToolchainNightly}/bin/cargo"
+          exec ${rustToolchainNightly}/bin/cargo-fmt fmt "$@"
         '';
 
         toolkitClippy = pkgs.writeShellScriptBin "toolkit-clippy" ''
           set -euo pipefail
-          export PATH="$HOME/.cargo/bin:$PATH"
-          exec ${rustToolchainNightly}/bin/cargo clippy "$@"
+          export RUSTC="${rustToolchainStable}/bin/rustc"
+          export RUSTDOC="${rustToolchainStable}/bin/rustdoc"
+          export CARGO="${rustToolchainStable}/bin/cargo"
+          exec ${rustToolchainStable}/bin/cargo-clippy clippy "$@"
         '';
 
         toolkitCargoFmtNightly = pkgs.writeShellScriptBin "toolkit-cargo-fmt-nightly" ''
@@ -223,7 +246,7 @@
           export PATH="$HOME/.cargo/bin:$PATH"
 
           host="$(${rustToolchainNightly}/bin/rustc -vV | awk '/^host: / { print $2 }')"
-          toolchain_name="toolkit-nightly-''${host}"
+          toolchain_name="toolkit-nightly-2026-04-10-''${host}"
           resolved_lint_path="$lint_path"
           copied_lint_dir=""
           temp_toolchain_file=""
@@ -269,6 +292,9 @@ EOF
         '';
 
         toolkitPackages = {
+          toolkit-cargo = cargoWrapper;
+          toolkit-rust-stable = rustToolchainStable;
+          toolkit-rust-nightly = rustToolchainNightly;
           toolkit-xtask = toolkitXtask;
           toolkit-install-dylint = installDylint;
           toolkit-dylint-link = dylintLinkWrapper;
@@ -315,7 +341,7 @@ EOF
             consumerShellSupport.packages
             ++ (with pkgs; [
               cargoWrapper
-              rustToolchainNightly
+              rustToolchainStable
               git
               just
               ripgrep
@@ -328,7 +354,6 @@ EOF
           buildInputs = consumerShellSupport.buildInputs;
 
           shellHook = ''
-            export PATH="$HOME/.cargo/bin:$PATH"
             ${consumerShellSupport.shellHook}
             if [ -f "$PWD/flake.nix" ] && [ -d "$PWD/xtask" ] && [ -d "$PWD/lints" ]; then
               export TOOLKIT_ROOT="$PWD"
@@ -336,8 +361,8 @@ EOF
               export TOOLKIT_ROOT="${self.outPath}"
             fi
             [[ -r "$HOME/.local/state/secrets/cargo-registry-token" ]] && export CARGO_REGISTRY_TOKEN="$(cat "$HOME/.local/state/secrets/cargo-registry-token")"
-            echo "Toolkit nightly environment"
-            echo "Rust: $(${rustToolchainNightly}/bin/rustc --version)"
+            echo "Toolkit stable environment (nightly rustfmt/Dylint)"
+            echo "Rust: $(${rustToolchainStable}/bin/rustc --version)"
             echo "Run 'toolkit-install-dylint' once in this shell if cargo-dylint is not installed."
           '';
         };
