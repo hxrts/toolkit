@@ -17,7 +17,7 @@ struct TraitMethodMustUse;
 
 impl<'tcx> LateLintPass<'tcx> for TraitMethodMustUse {
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx Item<'tcx>) {
-        let ItemKind::Trait(_, _, _, _, _, _, items) = item.kind else {
+        let ItemKind::Trait { items, .. } = item.kind else {
             return;
         };
 

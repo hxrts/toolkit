@@ -60,7 +60,7 @@ struct TraitPurity;
 
 impl<'tcx> LateLintPass<'tcx> for TraitPurity {
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx Item<'tcx>) {
-        if !matches!(item.kind, ItemKind::Trait(..)) {
+        if !matches!(item.kind, ItemKind::Trait { .. }) {
             return;
         }
 

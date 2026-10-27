@@ -22,6 +22,8 @@ use rustc_session::Session;
 pub fn register_lints(sess: &Session, lint_store: &mut LintStore) {
     dylint_linting::init_config(sess);
     lint_store.register_lints(&[long_block::LONG_BLOCK, long_file::LONG_FILE]);
-    lint_store.register_late_pass(|_| Box::new(long_block::LongBlock));
-    lint_store.register_late_pass(|_| Box::new(long_file::LongFile::default()));
+    lint_store.register_late_lint_pass(Box::new(|_| Box::new(long_block::LongBlock)));
+    lint_store.register_late_lint_pass(Box::new(|_| {
+        Box::new(long_file::LongFile::default())
+    }));
 }

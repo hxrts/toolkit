@@ -83,7 +83,7 @@
           set -euo pipefail
           toolkit_root="''${TOOLKIT_ROOT:-}"
           dylint_repo="''${XDG_CACHE_HOME:-$HOME/.cache}/toolkit/dylint"
-          dylint_rev="4bd91ce7729b74c7ee5664bbb588f7baf30b4a09"
+          dylint_rev="a63e31eac4f4db8cea6d1d960c6cdb8e1e52457a"
           git_bin="${pkgs.git}/bin/git"
           host="$(${rustToolchainNightly}/bin/rustc -vV | awk '/^host: / { print $2 }')"
           toolchain_name="toolkit-nightly-${nightlyDate}-''${host}"
