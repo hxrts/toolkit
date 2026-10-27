@@ -23,9 +23,7 @@ rustc_session::impl_lint_pass!(LongFile => [LONG_FILE]);
 
 impl Default for LongFile {
     fn default() -> Self {
-        Self {
-            seen_files: BTreeSet::new(),
-        }
+        Self { seen_files: BTreeSet::new() }
     }
 }
 

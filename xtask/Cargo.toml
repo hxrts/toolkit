@@ -2,7 +2,7 @@
 
 [package]
 name = "rust-toolkit-xtask"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 description = "Reusable xtask command surface for the rust-toolkit policy framework"
 license = "Apache-2.0"

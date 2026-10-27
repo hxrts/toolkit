@@ -16,8 +16,8 @@
 //! Rejects: public traits missing both annotations. Internal support traits
 //! (`Sealed`, `EffectDefinition`, `HandlerDefinition`) are exempt.
 
-use rustc_hir::{Item, ItemKind};
 use rustc_errors::DiagDecorator;
+use rustc_hir::{Item, ItemKind};
 use rustc_lint::{LateContext, LateLintPass, LintContext};
 
 use crate::source_scan::source_has_trait_purity_marker;
@@ -84,7 +84,9 @@ impl<'tcx> LateLintPass<'tcx> for TraitPurity {
             TRAIT_PURITY,
             item.span,
             DiagDecorator(|diag| {
-                diag.primary_message("public trait is missing #[purity(...)] or #[effect_trait]");
+                diag.primary_message(
+                    "public trait is missing #[purity(...)] or #[effect_trait]",
+                );
             }),
         );
     }

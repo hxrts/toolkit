@@ -2,7 +2,7 @@
 
 [package]
 name = "rust-toolkit-trait-contracts"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 description = "Reusable trait contract support types for the rust-toolkit policy framework"
 license = "Apache-2.0"

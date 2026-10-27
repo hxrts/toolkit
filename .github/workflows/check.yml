@@ -1,0 +1,46 @@
+name: Check
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  stable:
+    name: Stable compiler and policy contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@9383ce2bf08796b65508822f5982f49151badc4e
+      - name: Build exact stable dispatchers
+        shell: bash
+        run: nix build .#toolkit-cargo .#toolkit-clippy --no-link --json > stable-outputs.json
+      - name: Test real compiler dispatch and all stable crates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo_path=$(jq -er '.[0].outputs.out' stable-outputs.json)
+          clippy_path=$(jq -er '.[1].outputs.out' stable-outputs.json)
+          for member in effects trait_contracts macros xtask; do
+            if [[ ! -f "$member/Cargo.lock" ]]; then
+              "$cargo_path/bin/cargo" generate-lockfile --manifest-path "$member/Cargo.toml"
+            fi
+          done
+          nix develop --command scripts/test-stable.sh "$cargo_path/bin/cargo" "$clippy_path/bin/toolkit-clippy"
+  nightly:
+    name: Pinned formatter and compiler-private compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@9383ce2bf08796b65508822f5982f49151badc4e
+      - name: Build exact nightly tools
+        shell: bash
+        run: nix build .#toolkit-fmt .#toolkit-rust-nightly --no-link --json > nightly-outputs.json
+      - name: Check formatting and compiler-private crates
+        shell: bash
+        run: |
+          set -euo pipefail
+          fmt_path=$(jq -er '.[0].outputs.out' nightly-outputs.json)
+          nightly_path=$(jq -er '.[1].outputs.out' nightly-outputs.json)
+          scripts/test-nightly.sh "$fmt_path/bin/toolkit-fmt" "$nightly_path"

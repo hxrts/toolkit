@@ -78,6 +78,16 @@ only the pieces they need.
 - Do not add consuming-repo policy examples that imply this repo owns a local
   `toolkit/` directory.
 
+## Compiler selection
+
+Ordinary Cargo, Clippy and xtask use pinned stable Rust 1.99.1. Nightly
+rustfmt and compiler-private Dylint use nightly-2026-04-10 with a dated
+rustup link so other consumer toolchains cannot overwrite its identity.
+Keep direct Cargo/Clippy/rustfmt dispatch and explicit formatter configuration;
+Cargo-home plugins must not select a different compiler. Run `just test-stable`
+and `just test-nightly` for the shared local/CI contracts. Preserve the tracked
+xtask lockfile; generate a library/lint lockfile only when absent.
+
 ## Commands
 
 Run commands from the toolkit repo root.

@@ -6,8 +6,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
-    parse2, parse_quote, Error, Ident, ItemImpl, ItemTrait, Path, Receiver,
-    TraitItem,
+    parse2, parse_quote, Error, Ident, ItemImpl, ItemTrait, Path, Receiver, TraitItem,
 };
 
 pub fn expand_purity(attr: TokenStream, item: TokenStream) -> TokenStream {

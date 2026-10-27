@@ -16,7 +16,8 @@ pub fn run(repo_root: &Path, config: &ToolkitConfig) -> Result<FlatFindingSet> {
     if !check.enabled || check.banned_derives.is_empty() {
         return Ok(FlatFindingSet::default());
     }
-    // Build a pattern that matches any banned derive inside a derive(...) attribute.
+    // Build a pattern that matches any banned derive inside a derive(...)
+    // attribute.
     let alts = check
         .banned_derives
         .iter()
