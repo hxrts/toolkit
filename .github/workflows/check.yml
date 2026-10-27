@@ -26,7 +26,7 @@ jobs:
               "$cargo_path/bin/cargo" generate-lockfile --manifest-path "$member/Cargo.toml"
             fi
           done
-          scripts/test-stable.sh "$cargo_path/bin/cargo" "$clippy_path/bin/toolkit-clippy"
+          nix develop --command scripts/test-stable.sh "$cargo_path/bin/cargo" "$clippy_path/bin/toolkit-clippy"
   nightly:
     name: Pinned formatter and compiler-private compatibility
     runs-on: ubuntu-latest
