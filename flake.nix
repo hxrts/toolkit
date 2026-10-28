@@ -340,6 +340,7 @@ EOF
         devShells.default = pkgs.mkShell {
           packages =
             consumerShellSupport.packages
+            ++ [ installDylint dylintLinkWrapper toolkitDylint ]
             ++ (with pkgs; [
               cargoWrapper
               rustToolchainStable
