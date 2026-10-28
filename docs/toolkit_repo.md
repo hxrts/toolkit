@@ -131,5 +131,5 @@ Private compiler or Dylint changes also require `just test-dylint-driver`.
 This maintained CI check installs the pinned driver, dynamically loads each of
 Toolkit's four lint libraries and executes Rust 1.99-minimum consumer fixtures.
 Each library must accept its clean control and reject its actual violation with
-native status101 and the expected diagnostic. Compilation-only success does not
+native driver status1 and the expected diagnostic. Compilation-only success does not
 establish this driver/consumer contract; repository-specific gates remain required.

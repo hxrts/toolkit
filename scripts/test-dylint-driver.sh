@@ -49,9 +49,9 @@ RUST
       ;;
   esac
   status=0
-  toolkit-dylint --repo-root "$fixture" --toolkit-lint "$lint" --all -- --all-targets -D "$name" > "$fixture/$lint.log" 2>&1 || status=$?
+  DYLINT_RUSTFLAGS="-D $name" toolkit-dylint --repo-root "$fixture" --toolkit-lint "$lint" --all -- --all-targets > "$fixture/$lint.log" 2>&1 || status=$?
   cat "$fixture/$lint.log"
-  [[ "$status" == 101 ]]
+  [[ "$status" == 1 ]]
   grep -Fq "$cause" "$fixture/$lint.log"
   printf 'dynamic driver: %s positive and exact-cause rejection passed\n' "$lint"
 done
