@@ -81,11 +81,15 @@ only the pieces they need.
 ## Compiler selection
 
 Ordinary Cargo, Clippy and xtask use pinned stable Rust 1.99.1. Nightly
-rustfmt and compiler-private Dylint use nightly-2026-04-10 with a dated
+rustfmt and compiler-private Dylint use nightly-2026-08-21 with a dated
 rustup link so other consumer toolchains cannot overwrite its identity.
 Keep direct Cargo/Clippy/rustfmt dispatch and explicit formatter configuration;
 Cargo-home plugins must not select a different compiler. Run `just test-stable`
-and `just test-nightly` for the shared local/CI contracts. Preserve the tracked
+and `just test-nightly` for the shared local/CI contracts. Run
+`just test-dylint-driver` after private compiler, Dylint or lint-library changes;
+it uses the real installer/driver and requires clean controls plus exact-cause
+rejections for all four libraries. Library compilation alone does not prove
+dynamic loading or consumer diagnostics. Preserve the tracked
 xtask lockfile; generate a library/lint lockfile only when absent.
 
 ## Commands

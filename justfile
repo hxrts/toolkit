@@ -68,6 +68,10 @@ test-stable-dispatch:
 test-stable:
     nix develop --command bash -c 'scripts/test-stable.sh "$(command -v cargo)" "$(command -v toolkit-clippy)"'
 
+# Dynamic driver ABI plus actual positive/negative consumer diagnostics.
+test-dylint-driver:
+    nix develop --command scripts/test-dylint-driver.sh
+
 # Pinned nightly formatter dispatch and compiler-private compilation contract.
 test-nightly:
     #!/usr/bin/env bash

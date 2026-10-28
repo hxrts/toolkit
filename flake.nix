@@ -40,7 +40,8 @@
           ];
           targets = [ "wasm32-unknown-unknown" ];
         };
-        rustToolchainNightly = pkgs.rust-bin.nightly."2026-04-10".default.override {
+        nightlyDate = "2026-08-21";
+        rustToolchainNightly = pkgs.rust-bin.nightly.${nightlyDate}.default.override {
           extensions = [
             "rust-src"
             "rust-analyzer"
@@ -82,10 +83,10 @@
           set -euo pipefail
           toolkit_root="''${TOOLKIT_ROOT:-}"
           dylint_repo="''${XDG_CACHE_HOME:-$HOME/.cache}/toolkit/dylint"
-          dylint_rev="4bd91ce7729b74c7ee5664bbb588f7baf30b4a09"
+          dylint_rev="a63e31eac4f4db8cea6d1d960c6cdb8e1e52457a"
           git_bin="${pkgs.git}/bin/git"
           host="$(${rustToolchainNightly}/bin/rustc -vV | awk '/^host: / { print $2 }')"
-          toolchain_name="toolkit-nightly-2026-04-10-''${host}"
+          toolchain_name="toolkit-nightly-${nightlyDate}-''${host}"
           toolchain_root="${rustToolchainNightly}"
 
           mkdir -p "$(dirname "$dylint_repo")"
@@ -119,7 +120,7 @@
           set -euo pipefail
           if [ -z "''${RUSTUP_TOOLCHAIN:-}" ]; then
             host="$(${rustToolchainNightly}/bin/rustc -vV | awk '/^host: / { print $2 }')"
-            export RUSTUP_TOOLCHAIN="toolkit-nightly-2026-04-10-''${host}"
+            export RUSTUP_TOOLCHAIN="toolkit-nightly-${nightlyDate}-''${host}"
           fi
           export PATH="$HOME/.cargo/bin:$PATH"
           exec dylint-link "$@"
@@ -246,7 +247,7 @@
           export PATH="$HOME/.cargo/bin:$PATH"
 
           host="$(${rustToolchainNightly}/bin/rustc -vV | awk '/^host: / { print $2 }')"
-          toolchain_name="toolkit-nightly-2026-04-10-''${host}"
+          toolchain_name="toolkit-nightly-${nightlyDate}-''${host}"
           resolved_lint_path="$lint_path"
           copied_lint_dir=""
           temp_toolchain_file=""
@@ -339,6 +340,7 @@ EOF
         devShells.default = pkgs.mkShell {
           packages =
             consumerShellSupport.packages
+            ++ [ installDylint dylintLinkWrapper toolkitDylint ]
             ++ (with pkgs; [
               cargoWrapper
               rustToolchainStable

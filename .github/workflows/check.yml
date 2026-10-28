@@ -44,3 +44,6 @@ jobs:
           fmt_path=$(jq -er '.[0].outputs.out' nightly-outputs.json)
           nightly_path=$(jq -er '.[1].outputs.out' nightly-outputs.json)
           scripts/test-nightly.sh "$fmt_path/bin/toolkit-fmt" "$nightly_path"
+      - name: Exercise real Dylint driver and consumer diagnostics
+        shell: bash
+        run: nix develop --command scripts/test-dylint-driver.sh
