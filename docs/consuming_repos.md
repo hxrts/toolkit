@@ -418,3 +418,42 @@ linker = "toolkit-dylint-link"
 
 That linker wrapper is provided by the toolkit Nix shell and is required so
 `cargo dylint` produces the `@toolchain` library filename that Dylint expects.
+
+## Explicit selected Cargo dispatch
+
+The `toolkit-cargo-dispatch` package provides parameter-driven dispatch:
+
+```bash
+toolkit-cargo-dispatch --cargo /selected/bin/cargo \
+  --clippy /selected/bin/cargo-clippy --selected-cache /selected/bin/sccache \
+  --cache-bypass 0 -- build --locked
+```
+
+Bind this command from the exact Toolkit input package, rather than guessing a
+sibling checkout or selecting a PATH command. All three selected tool arguments
+must be absolute paths; `--cache-bypass` is required and accepts only `0` or `1`.
+With bypass enabled, only the exact selected cache wrapper (including bare
+`sccache` resolving to that path) is unset. Foreign and explicitly empty caller
+wrappers remain unchanged. Clippy receives the original `clippy` argument;
+`fmt` uses Cargo unless an explicit absolute `--fmt` tool is supplied, which
+also receives the original `fmt` argument. Arguments, streams and native status
+are forwarded through exec.
+
+Consumers retain opt-out environment names, incremental policy, compiler and
+formatter selection, cache budgets, admission, and source provenance. This
+helper does not start a daemon, install tools, restore artifacts or own receipts.
+It changes neither the existing stable nor compiler-private nightly wrappers.
+Run `just test-selected-cargo-dispatch` for no-build routing and mutation
+controls; normal stable/nightly integration gates remain required before release.
+
+For the selected sccache 0.11 / Rust 1.99.1 path, the dispatcher recomputes the
+reserved `CARGO_TOOLKIT_APPLE_DEPLOYMENT_V1` input from the five Apple deployment
+environment bases (`MACOSX`, `IPHONEOS`, `TVOS`, `WATCHOS`, `XROS`, each followed by
+`_DEPLOYMENT_TARGET`) and their named suffix variants. The selected Rust cache
+key hashes `CARGO_*` but omits those deployment inputs directly. The projection
+preserves absent, empty and byte-valued inputs distinctly; inherited marker text
+is replaced. It does not change deployment variables or compiler arguments.
+Foreign wrappers and cache bypass retain their original environment. This is a
+version-scoped cache-key repair, not a claim that every compiler environment
+input is covered. `scripts/test-selected-cargo-cache-key.sh` checks the mapping;
+real cache/object deployment-target tests remain required for adoption.

@@ -2,6 +2,8 @@
 # Shared local/CI stable validation. Build the two Nix wrappers first.
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+"$root/scripts/test-selected-cargo-dispatch.sh"
+"$root/scripts/test-selected-cargo-cache-key.sh"
 cargo_wrapper=${1:?Cargo wrapper required}
 clippy_wrapper=${2:?Clippy wrapper required}
 "$root/scripts/test-stable-dispatch.sh" "$cargo_wrapper" "$clippy_wrapper"

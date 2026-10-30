@@ -80,3 +80,7 @@ test-nightly:
     fmt_path=$(printf '%s' "$outputs" | jq -er '.[0].outputs.out')
     nightly_path=$(printf '%s' "$outputs" | jq -er '.[1].outputs.out')
     scripts/test-nightly.sh "$fmt_path/bin/toolkit-fmt" "$nightly_path"
+
+# No compiler or cache server; explicit selected-tool dispatch contracts.
+test-selected-cargo-dispatch:
+    bash scripts/test-selected-cargo-dispatch.sh
