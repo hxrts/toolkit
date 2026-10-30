@@ -167,7 +167,11 @@ mod tests {
         run_cmd(path, "git", &["config", "user.name", "Toolkit"]);
         fs::write(path.join("README.md"), "hello\n").expect("write readme");
         run_cmd(path, "git", &["add", "README.md"]);
-        run_cmd(path, "git", &["commit", "-m", "init"]);
+        run_cmd(
+            path,
+            "git",
+            &["-c", "commit.gpgsign=false", "commit", "-m", "init"],
+        );
     }
 
     fn git_head(path: &Path) -> String {

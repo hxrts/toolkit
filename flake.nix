@@ -292,7 +292,11 @@ EOF
           ${rustToolchainNightly}/bin/cargo dylint --path "$resolved_lint_path" "$@"
         '';
 
+        selectedCargoDispatch = pkgs.writeShellScriptBin "toolkit-cargo-dispatch"
+          (builtins.readFile ./scripts/selected-cargo-dispatch.sh);
+
         toolkitPackages = {
+          toolkit-cargo-dispatch = selectedCargoDispatch;
           toolkit-cargo = cargoWrapper;
           toolkit-rust-stable = rustToolchainStable;
           toolkit-rust-nightly = rustToolchainNightly;
@@ -343,9 +347,11 @@ EOF
             ++ [ installDylint dylintLinkWrapper toolkitDylint ]
             ++ (with pkgs; [
               cargoWrapper
+              toolkitClippy
               rustToolchainStable
               git
               just
+              jq
               ripgrep
               perl
               pkg-config
