@@ -339,6 +339,7 @@ EOF
         packages = toolkitPackages;
         lib = {
           inherit consumerShellSupport;
+          cargoDependencyCacheKey = import ./nix/cargo-dependency-cache-key.nix;
         };
 
         devShells.default = pkgs.mkShell {
