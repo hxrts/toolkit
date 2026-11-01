@@ -457,3 +457,15 @@ Foreign wrappers and cache bypass retain their original environment. This is a
 version-scoped cache-key repair, not a claim that every compiler environment
 input is covered. `scripts/test-selected-cargo-cache-key.sh` checks the mapping;
 real cache/object deployment-target tests remain required for adoption.
+
+## Dependency cache key
+
+The flake library exports `cargoDependencyCacheKey`, a pure function taking a
+schema string and an explicitly supplied producer-input record. Consumers own
+their schema, package and command selection, artifact verification, admission,
+and restoration. A key identifies declared inputs; it does not establish that
+an artifact is trusted or safe to restore. Changing the schema changes the key.
+The record must supply the exact fields defined by
+`nix/cargo-dependency-cache-key.nix`; missing, extra, mistyped and empty required
+identities are rejected. Consumers must bind the actual selected producer and
+configuration rather than reconstructing authority from the resulting hash.
