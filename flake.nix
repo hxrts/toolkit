@@ -298,6 +298,8 @@ EOF
           (builtins.readFile ./scripts/selected-cargo-dispatch.sh);
 
         toolkitPackages = {
+          toolkit-cargo-remap = pkgs.writeShellScriptBin "toolkit-cargo-remap"
+            (builtins.readFile ./scripts/selected-cargo-remap.sh);
           toolkit-cargo-dispatch = selectedCargoDispatch;
           toolkit-cargo = cargoWrapper;
           toolkit-rust-stable = rustToolchainStable;

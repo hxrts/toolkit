@@ -84,3 +84,6 @@ test-nightly:
 # No compiler or cache server; explicit selected-tool dispatch contracts.
 test-selected-cargo-dispatch:
     bash scripts/test-selected-cargo-dispatch.sh
+
+test-selected-cargo-remap:
+    bash scripts/test-selected-cargo-remap.sh
