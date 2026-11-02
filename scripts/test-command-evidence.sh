@@ -14,23 +14,48 @@ if [[ $# == 1 ]]; then
 fi
 fixture=$(mktemp -d)
 trap 'rm -rf -- "$fixture"' EXIT
-for invalid in '' lower 'HAS-DASH' $'LINE\nBREAK' $'\xc3\x89' "$(printf 'A%.0s' {1..65})"; do
+for mode in env cli; do
+ for invalid in '' lower 'HAS-DASH' $'LINE\nBREAK' $'\xc3\x89' "$(printf 'A%.0s' {1..65})"; do
+ prefix_args=(); configured=$invalid
+ if [[ $mode == cli ]]; then prefix_args=(--frame-prefix "$invalid" --); configured='original caller config'; fi
  result=0
- TOOLKIT_COMMAND_EVIDENCE_PREFIX=$invalid "${invocation[@]}" "$fixture/refused.raw" -- \
+ TOOLKIT_COMMAND_EVIDENCE_PREFIX=$configured "${invocation[@]}" "${prefix_args[@]}" "$fixture/refused.raw" -- \
   bash -c 'printf entered > "$1"' rejected-prefix "$fixture/refused-command-ack" \
   > "$fixture/refusal.out" 2> "$fixture/refusal.err" || result=$?
  [[ $result == 2 && ! -s $fixture/refusal.out && ! -e $fixture/refused.raw && ! -e $fixture/refused-command-ack ]]
  grep -Fx 'command evidence: explicit uppercase frame prefix required (1..64 bytes)' "$fixture/refusal.err"
-done
-printf '%s\n' 'PASS6 prefix refusals before original command or log creation'
+ done
 longest=$(printf 'A%.0s' {1..64})
-TOOLKIT_COMMAND_EVIDENCE_PREFIX=$longest "${invocation[@]}" "$fixture/longest.raw" -- \
+prefix_args=(); configured=$longest
+if [[ $mode == cli ]]; then prefix_args=(--frame-prefix "$longest" --); configured='original caller config'; fi
+TOOLKIT_COMMAND_EVIDENCE_PREFIX=$configured "${invocation[@]}" "${prefix_args[@]}" "$fixture/longest.raw" -- \
  bash -c 'printf "boundary\\000\\377"' > "$fixture/longest.frame" 2> "$fixture/longest.err"
 [[ ! -s $fixture/longest.err && $(head -n 1 "$fixture/longest.frame") == "${longest}_BEGIN_V1" &&
  $(tail -n 1 "$fixture/longest.frame") == "${longest}_END_V1" ]]
 printf 'boundary\000\377' > "$fixture/longest.expected"
 cmp "$fixture/longest.expected" "$fixture/longest.raw"
-printf '%s\n' 'PASS maximum64-byte prefix with exact binary stdout'
+printf 'PASS %s:6 prefix refusals and maximum64-byte prefix with exact binary stdout\n' "$mode"
+done
+for shape in missing-prefix missing-separator wrong-separator; do
+ case $shape in missing-prefix) prefix_args=(--frame-prefix);; missing-separator) prefix_args=(--frame-prefix TEST);; wrong-separator) prefix_args=(--frame-prefix TEST wrong);; esac
+ result=0
+ "${invocation[@]}" "${prefix_args[@]}" > "$fixture/shape.out" 2> "$fixture/shape.err" || result=$?
+ [[ $result == 2 && ! -s $fixture/shape.out ]]
+ grep -Fx 'command evidence: expected --frame-prefix PREFIX -- LOG -- COMMAND...' "$fixture/shape.err" >/dev/null
+done
+for reserved in _toolkit_frame_prefix log metadata command_status; do
+ for channel in open closed; do
+ result=0
+ (
+  [[ $channel != closed ]] || exec 2>&-
+  export "$reserved=poison"
+  "${invocation[@]}" --frame-prefix TEST -- "$fixture/reserved.raw" -- true
+ ) > "$fixture/reserved.out" 2> "$fixture/reserved.err" || result=$?
+ [[ $result == 2 && ! -s $fixture/reserved.out && ! -e $fixture/reserved.raw ]]
+ if [[ $channel == open ]]; then grep -Fx "command evidence: reserved internal export refused: $reserved" "$fixture/reserved.err" >/dev/null; else [[ ! -s $fixture/reserved.err ]]; fi
+ done
+done
+printf '%s\n' 'PASS3 malformed CLI shapes and8 reserved-export channel controls'
 python3 - "$helper" "$fixture/cases" "$#" "$BASH" <<'PYTHON'
 import base64,json,os,pathlib,subprocess,sys
 helper=pathlib.Path(sys.argv[1]).resolve(); fixture=pathlib.Path(sys.argv[2]).resolve(); fixture.mkdir(exist_ok=False)
@@ -39,6 +64,7 @@ provider=os.environ['PATH']
 (fixture/'bin').mkdir();cmd=fixture/'original-command';cmd.write_text('#!/usr/bin/python3\nimport os,sys\nopen(os.environ["ACK"],"w").write("original command entered")\nsys.stdout.buffer.write(b\'{"reason":"compiler-artifact","fresh":false,"filenames":["sandbox/file"],"features":[]}\\n\\x00\\xffpartial\\n\')\nsys.stderr.write("original command stderr\\n")\nsys.exit(int(os.environ.get("ORIGINAL_STATUS","0")))\n');cmd.chmod(0o700)
 # Actual system Python provider is selected explicitly; no compiler invocation.
 cmd.write_text(cmd.read_text().replace('#!/usr/bin/python3','#!'+sys.executable))
+cmd.write_text(cmd.read_text().replace('import os,sys\n','import os,sys\nassert os.environ.get("prefix")=="original caller prefix"\nassert os.environ.get("TOOLKIT_COMMAND_EVIDENCE_PREFIX")==os.environ["EXPECTED_EVIDENCE_CONFIG"]\n'))
 held_stdout=b'{"reason":"compiler-artifact","fresh":false,"filenames":["sandbox/file"],"features":[]}\n\x00\xffpartial\n'
 results=[]
 def parse(data):
@@ -47,15 +73,16 @@ def parse(data):
  argv=base64.b64decode(''.join(lines[3:argv_end]),validate=True);stdout=base64.b64decode(''.join(lines[argv_end+3:stdout_end]),validate=True)
  assert len(argv)==int(lines[1].split(':')[1]) and len(stdout)==int(lines[argv_end+1].split(':')[1])
  return json.loads(argv),stdout,int(lines[stdout_end+1].split(':')[1])
-def run(name,original=0,fault=None,closed=False):
- d=fixture/name;d.mkdir();env={**os.environ,'PATH':str(fixture/'bin')+':'+provider,'ACK':str(d/'ack'),'ORIGINAL_STATUS':str(original),'TMPDIR':str(d)}
+def run(name,original=0,fault=None,closed=False,cli=False):
+ config='original caller config' if cli else 'TOOLKIT_TEST_COMMAND'
+ d=fixture/(('cli-' if cli else 'env-')+name);d.mkdir();env={**os.environ,'PATH':str(fixture/'bin')+':'+provider,'ACK':str(d/'ack'),'ORIGINAL_STATUS':str(original),'TMPDIR':str(d),'prefix':'original caller prefix','TOOLKIT_COMMAND_EVIDENCE_PREFIX':config,'EXPECTED_EVIDENCE_CONFIG':config}
  for x in ['base64','jq','rm']:
   f=fixture/'bin'/x
   if f.exists():f.unlink()
  if fault:
   tool,status=fault;f=fixture/'bin'/tool;f.write_text('#!/bin/sh\necho "original '+tool+' native failure" >&2\nexit '+str(status)+'\n');f.chmod(0o700)
  command_args=[str(cmd),'space arg','','line\nbreak']
- argv=([str(helper)] if direct else [bash,str(helper)])+[str(d/'cargo.raw'),'--']+command_args
+ argv=([str(helper)] if direct else [bash,str(helper)])+(['--frame-prefix','TOOLKIT_TEST_COMMAND','--'] if cli else [])+[str(d/'cargo.raw'),'--']+command_args
  if closed:
   p=subprocess.Popen(argv,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE);p.stdout.close();err=p.stderr.read();code=p.wait(timeout=10);out=b''
  else:
@@ -80,8 +107,9 @@ def run(name,original=0,fault=None,closed=False):
   assert ('path='+str(leftovers[0])).encode() in err
  else:assert not leftovers
  results.append({'name':name,'native_status':code,'original_status':original,'fault':fault,'closed_native_pipe':closed})
-run('success');run('original37',37);run('publication42',fault=('base64',42));run('original37-publication42',37,('base64',42));run('jq2-no-command',fault=('jq',2));run('original37-closed-native-pipe',37,closed=True);run('cleanup43',fault=('rm',43));run('original37-cleanup43',37,('rm',43))
-(fixture/'results.json').write_text(json.dumps(results,indent=2)+'\n');print('PASS8 controls: exact raw bytes/argv/status, partial failed stdout, publication42, jq2 no-command, actual closed pipe, cleanup43 with original37 retained')
+for cli in [False,True]:
+ run('success',cli=cli);run('original37',37,cli=cli);run('publication42',fault=('base64',42),cli=cli);run('original37-publication42',37,('base64',42),cli=cli);run('jq2-no-command',fault=('jq',2),cli=cli);run('original37-closed-native-pipe',37,closed=True,cli=cli);run('cleanup43',fault=('rm',43),cli=cli);run('original37-cleanup43',37,('rm',43),cli=cli)
+(fixture/'results.json').write_text(json.dumps(results,indent=2)+'\n');print('PASS16 ENV/CLI controls: exact raw bytes/argv/status and original environment, publication42, jq2, closed pipe, cleanup43 with original37 retained')
 PYTHON
 
 python3 - "$helper" "$fixture/closed" "$BASH" <<'CLOSED_STDERR'
@@ -90,13 +118,15 @@ helper=pathlib.Path(sys.argv[1]).resolve();case_root=pathlib.Path(sys.argv[2]).r
 bash=sys.argv[3];provider=os.environ['PATH'];results=[]
 held=b'{"reason":"held-closed-stderr-command"}\n'
 for tool,fault_status in [('base64',42),('rm',43)]:
- for original in [37,0]:
-  d=case_root/(tool+'-original'+str(original));d.mkdir();(d/'bin').mkdir()
+ for original,cli in [(37,False),(0,False),(37,True),(0,True)]:
+  d=case_root/(('cli-' if cli else 'env-')+tool+'-original'+str(original));d.mkdir();(d/'bin').mkdir()
   fault=d/'bin'/tool;fault.write_text('#!/bin/sh\nprintf "original '+tool+' failure reached\\n" > "$FAULT_ACK"\nexit '+str(fault_status)+'\n');fault.chmod(0o700)
-  env={**os.environ,'PATH':str(d/'bin')+':'+provider,'TMPDIR':str(d),'ACK':str(d/'ack'),'FAULT_ACK':str(d/'fault-ack'),'ORIGINAL':str(original)}
+  config='original caller config' if cli else 'TOOLKIT_TEST_COMMAND'
+  env={**os.environ,'PATH':str(d/'bin')+':'+provider,'TMPDIR':str(d),'ACK':str(d/'ack'),'FAULT_ACK':str(d/'fault-ack'),'ORIGINAL':str(original),'prefix':'original caller prefix','TOOLKIT_COMMAND_EVIDENCE_PREFIX':config,'EXPECTED_EVIDENCE_CONFIG':config}
   wrapper=r'''helper_body=$(cat "$1" && printf '.') || exit $?
 helper_body=${helper_body%.}; shift
 original_silent_command() {
+  [[ $prefix == 'original caller prefix' && $TOOLKIT_COMMAND_EVIDENCE_PREFIX == "$EXPECTED_EVIDENCE_CONFIG" ]] || return 99
   if : >&2; then return 98; fi
   printf "original acknowledged stderr EBADF" > "$ACK"
   printf '%s\n' '{"reason":"held-closed-stderr-command"}'
@@ -105,7 +135,7 @@ original_silent_command() {
 exec 2>&-
 eval "$helper_body"
 '''
-  p=subprocess.run([bash,'-c',wrapper,'original-closed-stderr-owner',str(helper),str(d/'cargo.raw'),'--','original_silent_command'],env=env,capture_output=True)
+  p=subprocess.run([bash,'-c',wrapper,'original-closed-stderr-owner',str(helper)]+(['--frame-prefix','TOOLKIT_TEST_COMMAND','--'] if cli else [])+[str(d/'cargo.raw'),'--','original_silent_command'],env=env,capture_output=True)
   (d/'stdout').write_bytes(p.stdout);(d/'stderr').write_bytes(p.stderr);(d/'status').write_text(str(p.returncode)+'\n')
   assert (d/'ack').read_text()=='original acknowledged stderr EBADF' and (d/'fault-ack').read_text()=='original '+tool+' failure reached\n'
   assert (d/'cargo.raw').read_bytes()==held and not p.stderr
@@ -120,5 +150,5 @@ eval "$helper_body"
 (case_root/'results.json').write_text(json.dumps(results,indent=2)+'\n');print(json.dumps(results))
 assert all(x['native_helper_status']==x['expected_status'] for x in results),'original/native failure replaced when diagnostic FD2 unavailable'
 
-print("PASS4 closed-stderr controls: actual original EBADF acknowledgment; original37 or native publication42/cleanup43 retained")
+print("PASS8 ENV/CLI closed-stderr controls: actual original EBADF acknowledgment; original37 or native publication42/cleanup43 retained")
 CLOSED_STDERR

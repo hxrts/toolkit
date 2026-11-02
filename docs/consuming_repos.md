@@ -499,12 +499,19 @@ script. The focused recipe alone does not establish packaged execution.
 explicit caller-owned absolute file and publishes a version1 frame to stdout:
 
 ```bash
-TOOLKIT_COMMAND_EVIDENCE_PREFIX=PROJECT_COMMAND \
-  toolkit-command-evidence /private/evidence/command.raw -- COMMAND ARGS...
+toolkit-command-evidence --frame-prefix PROJECT_COMMAND -- \
+  /private/evidence/command.raw -- COMMAND ARGS...
 ```
 
 The prefix is explicit, uppercase ASCII letters/digits/underscores, begins with
-a letter and is at most64 bytes. The frame contains JSON argv and raw stdout as
+a letter and is at most64 bytes. The argument form keeps framing configuration
+out of the original command's environment. The existing
+`TOOLKIT_COMMAND_EVIDENCE_PREFIX` environment form remains supported; an explicit
+argument takes precedence without replacing that original environment value.
+Caller `prefix` exports are preserved. Reserved internal exports
+`_toolkit_frame_prefix`, `log`, `metadata` and `command_status` refuse before log
+allocation rather than silently replacing command inputs.
+The frame contains JSON argv and raw stdout as
 base64, their exact byte lengths, and the original command status. Stderr stays
 on its original channel; the frame does not infer ordering between streams.
 An original failure takes precedence over independent publication or metadata
