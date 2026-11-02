@@ -469,3 +469,26 @@ The record must supply the exact fields defined by
 `nix/cargo-dependency-cache-key.nix`; missing, extra, mistyped and empty required
 identities are rejected. Consumers must bind the actual selected producer and
 configuration rather than reconstructing authority from the resulting hash.
+
+## Selected compiler remapping
+
+`toolkit-cargo-remap` executes one explicitly selected compiler with an explicit
+output-root mapping:
+
+```bash
+toolkit-cargo-remap --compiler /selected/bin/rustc \
+  --from /producer/output --to /consumer-output -- rustc COMPILER_ARGS...
+```
+
+The original compiler argument must be `rustc` or that exact absolute compiler.
+The helper never resolves it through PATH and never starts a compiler-cache
+daemon. It prepends one `--remap-path-prefix` argument and preserves the remaining
+arguments, streams and native exit status. Absolute roots are required and `/`
+cannot be the source root. Consumers retain the selected compiler, mapping,
+wrapper identity, admission and artifact-verification policies. This adapter
+does not prove reproducibility, valid signatures, Cargo freshness or safe
+restoration. Run `just test-selected-cargo-remap` for focused stub controls;
+normal release gates and real consumer proofs remain required.
+The stable gate also runs those controls through the actual Nix-packaged
+executable, including its installed interpreter, rather than only the source
+script. The focused recipe alone does not establish packaged execution.
