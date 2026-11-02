@@ -7,6 +7,8 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 [[ $(nix eval --raw --file "$root/nix/tests/cargo-dependency-cache-key.nix") == ok ]]
 cargo_wrapper=${1:?Cargo wrapper required}
 clippy_wrapper=${2:?Clippy wrapper required}
+xtask_wrapper=$(nix build --no-link --print-out-paths "$root#toolkit-xtask")
+bash "$root/scripts/test-xtask-target-marker.sh" "$xtask_wrapper/bin/toolkit-xtask" "$cargo_wrapper"
 "$root/scripts/test-stable-dispatch.sh" "$cargo_wrapper" "$clippy_wrapper"
 for member in effects trait_contracts macros xtask; do
   "$cargo_wrapper" test --locked --manifest-path "$root/$member/Cargo.toml" --target-dir "$root/xtask/target"
