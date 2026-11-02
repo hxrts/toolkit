@@ -345,6 +345,10 @@ EOF
       in
       {
         packages = toolkitPackages;
+        checks.command-evidence-environment = import ./nix/tests/command-evidence-environment.nix {
+          inherit pkgs;
+          helper = toolkitPackages.toolkit-command-evidence;
+        };
         lib = {
           inherit consumerShellSupport;
           cargoDependencyCacheKey = import ./nix/cargo-dependency-cache-key.nix;

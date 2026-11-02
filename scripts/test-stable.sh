@@ -14,6 +14,8 @@ remap_wrapper=$(nix build --no-link --print-out-paths "$root#toolkit-cargo-remap
 bash "$root/scripts/test-selected-cargo-remap.sh" "$remap_wrapper/bin/toolkit-cargo-remap"
 evidence_wrapper=$(nix build --no-link --print-out-paths "$root#toolkit-command-evidence")
 bash "$root/scripts/test-command-evidence.sh" "$evidence_wrapper/bin/toolkit-command-evidence"
+system=$(nix eval --raw --impure --expr builtins.currentSystem)
+nix build --no-link "$root#checks.$system.command-evidence-environment"
 inventory_wrapper=$(nix build --no-link --print-out-paths "$root#toolkit-unit-inventory")
 bash "$root/scripts/test-unit-inventory.sh" "$inventory_wrapper/bin/toolkit-unit-inventory"
 xtask_wrapper=$(nix build --no-link --print-out-paths "$root#toolkit-xtask")
