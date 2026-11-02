@@ -298,6 +298,10 @@ EOF
           (builtins.readFile ./scripts/selected-cargo-dispatch.sh);
 
         toolkitPackages = {
+          toolkit-unit-inventory = pkgs.writeShellScriptBin "toolkit-unit-inventory"
+            (builtins.readFile ./scripts/unit-inventory.sh);
+          toolkit-command-evidence = pkgs.writeShellScriptBin "toolkit-command-evidence"
+            (builtins.readFile ./scripts/command-evidence.sh);
           toolkit-cargo-remap = pkgs.writeShellScriptBin "toolkit-cargo-remap"
             (builtins.readFile ./scripts/selected-cargo-remap.sh);
           toolkit-cargo-dispatch = selectedCargoDispatch;
@@ -357,6 +361,9 @@ EOF
               git
               just
               jq
+              coreutils
+              findutils
+              python3
               ripgrep
               perl
               pkg-config

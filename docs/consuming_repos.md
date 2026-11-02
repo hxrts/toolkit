@@ -492,3 +492,59 @@ normal release gates and real consumer proofs remain required.
 The stable gate also runs those controls through the actual Nix-packaged
 executable, including its installed interpreter, rather than only the source
 script. The focused recipe alone does not establish packaged execution.
+
+## Raw command evidence
+
+`toolkit-command-evidence` captures an original command's stdout bytes in an
+explicit caller-owned absolute file and publishes a version1 frame to stdout:
+
+```bash
+TOOLKIT_COMMAND_EVIDENCE_PREFIX=PROJECT_COMMAND \
+  toolkit-command-evidence /private/evidence/command.raw -- COMMAND ARGS...
+```
+
+The prefix is explicit, uppercase ASCII letters/digits/underscores, begins with
+a letter and is at most64 bytes. The frame contains JSON argv and raw stdout as
+base64, their exact byte lengths, and the original command status. Stderr stays
+on its original channel; the frame does not infer ordering between streams.
+An original failure takes precedence over independent publication or metadata
+cleanup failures, including when stderr is closed. After original success, those
+independent failures remain failures. The caller owns log-path exclusivity,
+retention, source/configuration binding, admission and interpretation. A frame
+does not authenticate artifacts, prove descendant teardown or acknowledge cleanup
+on behalf of an external resource owner. No cache restoration is activated.
+The selected execution environment must provide `jq`, `base64`, `wc`, `mktemp`
+and `rm`; the helper retains that environment for the original command and does
+not prepend a different provider PATH. Toolkit's validation shell declares its
+providers, including Python for the byte-oriented fixtures.
+
+Run `just test-command-evidence` for byte/argv/error-chronology controls. The
+stable gate also runs them through the actual packaged executable. Required
+stable/nightly and consumer gates still apply before release/adoption.
+
+## Per-command unit inventory
+
+`toolkit-unit-inventory` validates and publishes three successful Cargo artifact
+streams against an explicit three-command selection:
+
+```bash
+TOOLKIT_UNIT_INVENTORY_SCHEMA=project-warm-unit-inventory-v1 \
+  toolkit-unit-inventory /private/output/units.json /private/selection.json \
+  /private/check.jsonl /private/build.jsonl /private/test.jsonl
+```
+
+The caller binds a lowercase ASCII schema (letters/digits/hyphens, beginning
+with a letter, at most64 bytes). The helper requires exactly one successful
+terminal record at the end of each stream, validates artifact shapes and keeps
+each command's package, manifest, target, profile and feature records separately.
+Order is canonicalized without merging different feature selections. Publication
+uses a no-overwrite hard link after complete validation. Original validation or
+publication errors stay primary across independent temporary cleanup failures,
+including when stderr is closed. Failed cleanup is reported after primary success.
+
+This is an observation with scope `resolved-unit-features`, not a dependency-edge
+graph, artifact authentication, byte-retention proof or live capability. Consumers
+own exact schema/configuration matching and independent held identities; a schema
+from the input records cannot select the expected format. Callers provide `jq`
+and standard coreutils. Run `just test-unit-inventory`; stable validation also
+executes the actual installed helper with the same contracts and fault controls.
