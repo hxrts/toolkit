@@ -73,7 +73,9 @@
           fi
           target_key="$(basename "$toolkit_root" | tr -cs 'A-Za-z0-9._-' '_')"
           target_dir="''${XDG_CACHE_HOME:-$HOME/.cache}/toolkit/xtask-target/$target_key"
-          mkdir -p "$target_dir"
+          # Cargo creates the target and its ownership marker. Pre-creating the
+          # target prevents Cargo 1.99 from writing CACHEDIR.TAG, so its own
+          # clean command subsequently refuses the directory.
           export RUSTC="${rustToolchainStable}/bin/rustc"
           export RUSTDOC="${rustToolchainStable}/bin/rustdoc"
           exec ${rustToolchainStable}/bin/cargo run --target-dir "$target_dir" --manifest-path "$toolkit_root/xtask/Cargo.toml" -- "$@"
