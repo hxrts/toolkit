@@ -85,5 +85,11 @@ test-nightly:
 test-selected-cargo-dispatch:
     bash scripts/test-selected-cargo-dispatch.sh
 
+test-command-evidence:
+    bash scripts/test-command-evidence.sh
+
+test-unit-inventory:
+    bash scripts/test-unit-inventory.sh
+
 test-selected-cargo-remap:
     bash scripts/test-selected-cargo-remap.sh
